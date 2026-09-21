@@ -9,9 +9,9 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -19,7 +19,7 @@ import java.util.*
  * Child Tablet Kiosk Lock Screen in 100% Kotlin.
  * Android 15 API 35 compliant with Lock Task Mode and back gesture prevention.
  */
-class ChildKioskActivity : ComponentActivity(), NetworkPairingManager.UnlockEventListener {
+class ChildKioskActivity : AppCompatActivity(), NetworkPairingManager.UnlockEventListener {
 
     private lateinit var dpm: DevicePolicyManager
     private lateinit var adminComponent: ComponentName

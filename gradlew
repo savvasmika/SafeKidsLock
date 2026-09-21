@@ -119,6 +119,16 @@ save () {
 }
 APP_ARGS=`save "$@"`
 
+WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+if [ ! -f "$WRAPPER_JAR" ]; then
+    mkdir -p "$APP_HOME/gradle/wrapper"
+    if curl -fsSL -o "$WRAPPER_JAR" "https://raw.githubusercontent.com/gradle/gradle/v8.10.2/gradle/wrapper/gradle-wrapper.jar" 2>/dev/null; then
+        :
+    elif command -v gradle >/dev/null 2>&1; then
+        exec gradle "$@"
+    fi
+fi
+
 # Collect all arguments for the java command.
 set -- "$JAVACMD" $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS "-Dorg.gradle.appname=$APP_BASE_NAME" -classpath "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"
 

@@ -24,7 +24,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.KidsTabletLock"
-        tools:targetApi="35">
+        tools:targetApi="34">
 
         <!-- Launcher Activity: Mode Selection -->
         <activity

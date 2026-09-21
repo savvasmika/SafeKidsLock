@@ -5,13 +5,13 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 
 /**
  * Parent Controller Dashboard in 100% Kotlin.
  * Receives unlock requests in real time from child tablet and manages screen time.
  */
-class ParentDashboardActivity : ComponentActivity(), NetworkPairingManager.UnlockEventListener {
+class ParentDashboardActivity : AppCompatActivity(), NetworkPairingManager.UnlockEventListener {
 
     private lateinit var tvParentNetworkStatus: TextView
     private lateinit var cardIncomingRequest: View
