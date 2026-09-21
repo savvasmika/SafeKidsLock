@@ -1,82 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_dark"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:background="@color/background_dark">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🛡️ KidsSafe Kiosk"
-        android:textColor="@color/text_white"
-        android:textSize="28sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Επιλέξτε τρόπο λειτουργίας για αυτή τη συσκευή"
-        android:textColor="@color/text_muted"
-        android:textSize="14sp" />
-
-    <LinearLayout
+    <WebView
+        android:id="@+id/webView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:orientation="vertical">
+        android:layout_height="match_parent"
+        android:background="@color/background_dark" />
 
-        <!-- Child Mode Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnChildMode"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:backgroundTint="@color/primary"
-            android:text="📱 Συσκευή Παιδιού (Kiosk Mode)"
-            android:textColor="@color/background_dark"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_gravity="top"
+        android:indeterminate="true"
+        android:visibility="gone" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="20dp"
-            android:text="Κλειδώνει το τάμπλετ. Απαιτείται PIN ή έγκριση από το κινητό του γονέα."
-            android:textColor="@color/text_muted"
-            android:textSize="12sp" />
+</FrameLayout>
 
-        <!-- Parent Mode Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnParentMode"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:backgroundTint="@color/accent"
-            android:text="🛡️ Λειτουργία Γονέα (Parent Dashboard)"
-            android:textColor="@color/text_white"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Λαμβάνει αιτήματα ξεκλειδώματος, εμφανίζει το PIN και διαχειρίζεται το χρόνο."
-            android:textColor="@color/text_muted"
-            android:textSize="12sp" />
-
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/tvNetworkInfo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:text="📡 Αυτόματη ανίχνευση στο τοπικό δίκτυο (FAMILY-1001)"
-        android:textColor="@color/primary"
-        android:textSize="12sp" />
-
-</LinearLayout>

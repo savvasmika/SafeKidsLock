@@ -28,6 +28,8 @@ import {
   Gamepad2,
   Plus,
   Trash2,
+  Github,
+  RefreshCw,
 } from 'lucide-react';
 import { ParentSettings, ParentEmailMessage, EmailDeliveryConfig, AdminMember, InstalledApp } from '../types';
 import { sound } from '../utils/audio';
@@ -38,6 +40,7 @@ import {
   generateExpoSdk57Config,
   generateKotlinLockScreen,
 } from '../utils/android15';
+import { GitHubUpdatePanel } from './GitHubUpdatePanel';
 
 interface ParentSettingsModalProps {
   isOpen: boolean;
@@ -47,9 +50,10 @@ interface ParentSettingsModalProps {
   onSendTestEmail: (email: string) => void;
   emails: ParentEmailMessage[];
   initialTab?: TabType;
+  onDownloadApk?: () => void;
 }
 
-export type TabType = 'duration' | 'admins' | 'apps' | 'delivery' | 'email' | 'android15' | 'history';
+export type TabType = 'duration' | 'admins' | 'apps' | 'delivery' | 'email' | 'android15' | 'history' | 'updates';
 
 const DURATION_PRESETS = [5, 15, 30, 45, 60, 90, 120];
 
@@ -61,6 +65,7 @@ export const ParentSettingsModal: React.FC<ParentSettingsModalProps> = ({
   onSendTestEmail,
   emails,
   initialTab = 'duration',
+  onDownloadApk,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [localSettings, setLocalSettings] = useState<ParentSettings>(settings);
@@ -451,6 +456,19 @@ export const ParentSettingsModal: React.FC<ParentSettingsModalProps> = ({
           >
             <History className="w-4 h-4" />
             <span>Audit ({emails.length})</span>
+          </button>
+
+          <button
+            id="tab-btn-updates"
+            onClick={() => setActiveTab('updates')}
+            className={`flex items-center gap-2 px-3.5 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'updates'
+                ? 'border-cyan-400 text-cyan-400 bg-cyan-950/20'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Github className="w-4 h-4 text-cyan-400" />
+            <span>Ενημερώσεις GitHub</span>
           </button>
         </div>
 
@@ -1400,6 +1418,13 @@ export const ParentSettingsModal: React.FC<ParentSettingsModalProps> = ({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 8: GITHUB UPDATES */}
+          {activeTab === 'updates' && (
+            <div className="space-y-4">
+              <GitHubUpdatePanel onDownloadApk={onDownloadApk} />
             </div>
           )}
         </div>

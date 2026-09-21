@@ -20,6 +20,8 @@ class ParentDashboardActivity : AppCompatActivity(), NetworkPairingManager.Unloc
     private lateinit var btnApproveRemoteUnlock: Button
     private lateinit var btnRemoteLock: Button
     private lateinit var btnExtendTime15: Button
+    private lateinit var btnCheckGitHubUpdates: Button
+    private lateinit var tvUpdateStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,8 +34,44 @@ class ParentDashboardActivity : AppCompatActivity(), NetworkPairingManager.Unloc
         btnApproveRemoteUnlock = findViewById(R.id.btnApproveRemoteUnlock)
         btnRemoteLock = findViewById(R.id.btnRemoteLock)
         btnExtendTime15 = findViewById(R.id.btnExtendTime15)
+        btnCheckGitHubUpdates = findViewById(R.id.btnCheckGitHubUpdates)
+        tvUpdateStatus = findViewById(R.id.tvUpdateStatus)
 
         tvParentNetworkStatus.text = "🟢 Συνδεδεμένο στο δίκτυο (${NetworkPairingManager.familyCode})"
+
+        btnCheckGitHubUpdates.setOnClickListener {
+            btnCheckGitHubUpdates.isEnabled = false
+            btnCheckGitHubUpdates.text = "⏳ Έλεγχος στο GitHub..."
+            tvUpdateStatus.text = "Σύνδεση με το αποθετήριο ${AppUpdater.DEFAULT_REPO}..."
+
+            AppUpdater.checkForUpdates(this, AppUpdater.DEFAULT_REPO, object : AppUpdater.UpdateCheckCallback {
+                override fun onUpdateAvailable(latestCommitMsg: String, shortSha: String, commitUrl: String, apkUrl: String?) {
+                    btnCheckGitHubUpdates.isEnabled = true
+                    btnCheckGitHubUpdates.text = "🚀 Λήψη Νέου APK (#$shortSha)"
+                    tvUpdateStatus.text = "✨ Νέα έκδοση διαθέσιμη!\n$latestCommitMsg"
+
+                    btnCheckGitHubUpdates.setOnClickListener {
+                        val targetUrl = apkUrl ?: commitUrl
+                        Toast.makeText(this@ParentDashboardActivity, "Άνοιγμα ενημέρωσης...", Toast.LENGTH_SHORT).show()
+                        AppUpdater.openBrowserUrl(this@ParentDashboardActivity, targetUrl)
+                    }
+                }
+
+                override fun onUpToDate(currentVersion: String) {
+                    btnCheckGitHubUpdates.isEnabled = true
+                    btnCheckGitHubUpdates.text = "✅ Είστε στην πιο πρόσφατη έκδοση ($currentVersion)"
+                    tvUpdateStatus.text = "Η εφαρμογή είναι πλήρως ενημερωμένη με το GitHub repo."
+                    Toast.makeText(this@ParentDashboardActivity, "Είστε στην πιο πρόσφατη έκδοση!", Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onError(message: String) {
+                    btnCheckGitHubUpdates.isEnabled = true
+                    btnCheckGitHubUpdates.text = "🔄 Δοκιμή Ξανά"
+                    tvUpdateStatus.text = "⚠️ $message"
+                    Toast.makeText(this@ParentDashboardActivity, message, Toast.LENGTH_LONG).show()
+                }
+            })
+        }
 
         btnApproveRemoteUnlock.setOnClickListener {
             NetworkPairingManager.approveUnlock(

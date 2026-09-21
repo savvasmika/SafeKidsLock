@@ -331,6 +331,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install web dependencies
+        run: npm install
+
+      - name: Build Web Application Bundle
+        run: |
+          npm run build
+          mkdir -p app/src/main/assets
+          cp -r dist/* app/src/main/assets/
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -501,21 +516,76 @@ dependencies {
         kt.file(
           'MainActivity.kt',
           `package com.kidstablet.lockscreen
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.widget.Button
+import android.view.View
+import android.webkit.*
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var webView: WebView
+
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        findViewById<Button>(R.id.btnChildMode).setOnClickListener {
-            startActivity(Intent(this, ChildKioskActivity::class.java))
+
+        webView = findViewById(R.id.webView)
+        val s = webView.settings
+        s.javaScriptEnabled = true
+        s.domStorageEnabled = true
+        s.databaseEnabled = true
+        s.allowFileAccess = true
+        s.allowContentAccess = true
+        s.loadWithOverviewMode = true
+        s.useWideViewPort = true
+        s.mediaPlaybackRequiresUserGesture = false
+
+        webView.addJavascriptInterface(WebAppInterface(this), "AndroidNative")
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val url = request?.url?.toString() ?: return false
+                if (url.startsWith("file:///android_asset/")) return false
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                return true
+            }
         }
-        findViewById<Button>(R.id.btnParentMode).setOnClickListener {
-            startActivity(Intent(this, ParentDashboardActivity::class.java))
-        }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) webView.goBack()
+            }
+        })
+
+        webView.loadUrl("file:///android_asset/index.html")
+    }
+}`
+        );
+
+        kt.file(
+          'WebAppInterface.kt',
+          `package com.kidstablet.lockscreen
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.webkit.JavascriptInterface
+import android.widget.Toast
+
+class WebAppInterface(private val activity: Activity) {
+    @JavascriptInterface fun isNativeAndroid(): Boolean = true
+    @JavascriptInterface fun getAndroidVersion(): String = "Android " + Build.VERSION.RELEASE
+    @JavascriptInterface fun showToast(message: String) {
+        activity.runOnUiThread { Toast.makeText(activity, message, Toast.LENGTH_SHORT).show() }
+    }
+    @JavascriptInterface fun openExternalUrl(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+        activity.startActivity(intent)
     }
 }`
         );
@@ -546,6 +616,72 @@ class ChildKioskActivity : AppCompatActivity() {
         );
 
         kt.file('KidsDeviceAdminReceiver.kt', generateDeviceAdminReceiverKt());
+        kt.file(
+          'AppUpdater.kt',
+          `package com.kidstablet.lockscreen
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import org.json.JSONArray
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
+
+object AppUpdater {
+    const val DEFAULT_REPO = "savvasmika/SafeKidsLock"
+    const val CURRENT_VERSION = "v1.0.0"
+
+    interface UpdateCheckCallback {
+        fun onUpdateAvailable(latestCommitMsg: String, shortSha: String, commitUrl: String, apkUrl: String?)
+        fun onUpToDate(currentVersion: String)
+        fun onError(message: String)
+    }
+
+    fun checkForUpdates(context: Context, repo: String = DEFAULT_REPO, callback: UpdateCheckCallback) {
+        val mainHandler = Handler(Looper.getMainLooper())
+        thread {
+            try {
+                val cleanRepo = repo.trim().removePrefix("https://github.com/").removeSuffix(".git")
+                val url = URL("https://api.github.com/repos/$cleanRepo/commits?per_page=1")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                connection.setRequestProperty("User-Agent", "KidsSafeKiosk-App")
+                connection.connectTimeout = 8000
+                connection.readTimeout = 8000
+                if (connection.responseCode == 200) {
+                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                    val response = reader.readText()
+                    reader.close()
+                    val jsonArray = JSONArray(response)
+                    if (jsonArray.length() > 0) {
+                        val first = jsonArray.getJSONObject(0)
+                        val sha = first.getString("sha")
+                        val msg = first.getJSONObject("commit").getString("message").lines().firstOrNull() ?: "Update available"
+                        val commitUrl = first.optString("html_url", "https://github.com/$cleanRepo")
+                        mainHandler.post { callback.onUpdateAvailable(msg, sha.take(7), commitUrl, null) }
+                    } else {
+                        mainHandler.post { callback.onUpToDate(CURRENT_VERSION) }
+                    }
+                } else {
+                    mainHandler.post { callback.onError("HTTP " + connection.responseCode) }
+                }
+            } catch (e: Exception) {
+                mainHandler.post { callback.onError(e.localizedMessage ?: "Network error") }
+            }
+        }
+    }
+
+    fun openBrowserUrl(context: Context, url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+        context.startActivity(intent)
+    }
+}`
+        );
       }
     }
   }

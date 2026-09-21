@@ -112,6 +112,37 @@ export interface ParentSettings {
   themeColor: 'cyan' | 'purple' | 'amber' | 'emerald' | 'rose';
   android15: Android15Config;
   emailDelivery?: EmailDeliveryConfig;
+  githubRepo?: string; // e.g. "savvasmika/SafeKidsLock"
+}
+
+export interface GitHubCommitInfo {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+  url: string;
+}
+
+export interface GitHubReleaseInfo {
+  tagName: string;
+  name: string;
+  body: string;
+  publishedAt: string;
+  apkDownloadUrl?: string;
+  htmlUrl: string;
+}
+
+export interface GitHubUpdateStatus {
+  isChecking: boolean;
+  hasUpdate: boolean;
+  latestCommit?: GitHubCommitInfo;
+  latestRelease?: GitHubReleaseInfo;
+  currentVersion: string;
+  currentCommitDate: string;
+  lastCheckedTime?: number;
+  status: 'idle' | 'checking' | 'up-to-date' | 'update-available' | 'error';
+  errorMessage?: string;
 }
 
 export interface OtpRecord {

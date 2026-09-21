@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="110" fill="#0f172a"/>
+  <rect x="16" y="16" width="480" height="480" rx="94" fill="none" stroke="#06b6d4" stroke-width="10" stroke-opacity="0.4"/>
+  <circle cx="256" cy="256" r="170" fill="#06b6d4" fill-opacity="0.15"/>
+  <!-- Shield/Lock icon -->
+  <path d="M256 128 L374 182 V278 C374 352 320 405 256 426 C192 405 138 352 138 278 V182 Z" fill="#0891b2" stroke="#22d3ee" stroke-width="16" stroke-linejoin="round"/>
+  <!-- Lock Shackle & Body inside shield -->
+  <path d="M230 256 V230 C230 215.5 241.5 204 256 204 C270.5 204 282 215.5 282 230 V256" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+  <rect x="214" y="256" width="84" height="68" rx="16" fill="#ffffff"/>
+  <circle cx="256" cy="285" r="9" fill="#0891b2"/>
+  <path d="M256 294 V306" stroke="#0891b2" stroke-width="7" stroke-linecap="round"/>
+</svg>

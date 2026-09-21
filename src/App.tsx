@@ -26,7 +26,8 @@ import { ParentDashboard } from './components/ParentDashboard';
 import { DualDeviceView } from './components/DualDeviceView';
 import { sound } from './utils/audio';
 import { pairingService } from './utils/pairingService';
-import { Shield, Smartphone, Layers, Wifi } from 'lucide-react';
+import { Shield, Smartphone, Layers, Wifi, Github } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [settings, setSettings] = useState<ParentSettings>(() => loadParentSettings());
@@ -412,30 +413,50 @@ export default function App() {
       onOpenSettings={() => handleOpenSettings('duration')}
       onOpenExpoModal={() => setIsExpoModalOpen(true)}
     >
-      {lockState === 'locked' ? (
-        <LockScreen
-          settings={settings}
-          activeOtp={activeOtp}
-          isSendingCode={isSendingCode}
-          lastDispatchResult={lastDispatchResult}
-          sessionExpiredNotice={sessionExpiredNotice}
-          onDismissExpiredNotice={() => setSessionExpiredNotice(false)}
-          onRequestNewOtp={handleRequestNewOtp}
-          onVerifyOtp={handleVerifyOtp}
-          onOpenSettings={handleOpenSettings}
-          onOpenEmergency={() => setIsEmergencyOpen(true)}
-        />
-      ) : activeSession ? (
-        <UnlockedTabletHome
-          settings={settings}
-          session={activeSession}
-          onLockNow={handleLockNow}
-          onSessionExpired={handleSessionExpired}
-          onOpenSettings={(tab) => handleOpenSettings(tab || 'duration')}
-          onExtendSession={handleExtendSession}
-          onUpdateSettings={handleSaveSettings}
-        />
-      ) : null}
+      <AnimatePresence mode="wait">
+        {lockState === 'locked' ? (
+          <motion.div
+            key="tablet-lockscreen-view"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.04, filter: 'blur(8px)' }}
+            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full h-full"
+          >
+            <LockScreen
+              settings={settings}
+              activeOtp={activeOtp}
+              isSendingCode={isSendingCode}
+              lastDispatchResult={lastDispatchResult}
+              sessionExpiredNotice={sessionExpiredNotice}
+              onDismissExpiredNotice={() => setSessionExpiredNotice(false)}
+              onRequestNewOtp={handleRequestNewOtp}
+              onVerifyOtp={handleVerifyOtp}
+              onOpenSettings={handleOpenSettings}
+              onOpenEmergency={() => setIsEmergencyOpen(true)}
+            />
+          </motion.div>
+        ) : activeSession ? (
+          <motion.div
+            key="tablet-unlocked-home-view"
+            initial={{ opacity: 0, scale: 0.96, y: 12, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.98, filter: 'blur(6px)' }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full h-full"
+          >
+            <UnlockedTabletHome
+              settings={settings}
+              session={activeSession}
+              onLockNow={handleLockNow}
+              onSessionExpired={handleSessionExpired}
+              onOpenSettings={(tab) => handleOpenSettings(tab || 'duration')}
+              onExtendSession={handleExtendSession}
+              onUpdateSettings={handleSaveSettings}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </TabletFrame>
   );
 
@@ -498,6 +519,17 @@ export default function App() {
             <span className="hidden sm:inline">3. Διπλή Προβολή (Live Sync)</span>
             <span className="sm:hidden">3. Διπλή</span>
           </button>
+
+          <button
+            id="header-btn-github-updates"
+            type="button"
+            onClick={() => handleOpenSettings('updates')}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-800 hover:border-cyan-500/50 text-xs font-semibold transition-all cursor-pointer"
+            title="Έλεγχος για Ενημερώσεις Εφαρμογής στο GitHub"
+          >
+            <Github className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden lg:inline">Ενημερώσεις</span>
+          </button>
         </div>
       </header>
 
@@ -541,6 +573,7 @@ export default function App() {
         onSendTestEmail={handleSendTestCode}
         emails={emailAuditLogs}
         initialTab={settingsTab}
+        onDownloadApk={() => setIsExpoModalOpen(true)}
       />
 
       {/* Emergency SOS Dialer Modal */}

@@ -26,6 +26,7 @@ import {
 import { ParentSettings, FamilyRoomState, UnlockRequest, DeviceRole, InstalledApp } from '../types';
 import { pairingService } from '../utils/pairingService';
 import { sound } from '../utils/audio';
+import { GitHubUpdatePanel } from './GitHubUpdatePanel';
 
 interface ParentDashboardProps {
   settings: ParentSettings;
@@ -709,6 +710,11 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* GitHub Repository Updates Card */}
+      <div className="mt-4">
+        <GitHubUpdatePanel />
       </div>
 
       {/* Custom Generated PIN Modal */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Lock,
+  Unlock,
   Mail,
   RefreshCw,
   Settings,
@@ -16,6 +17,7 @@ import {
   Smartphone,
   Sparkles,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ParentSettings, OtpRecord, UnlockRequest } from '../types';
 import { Keypad } from './Keypad';
 import { sound } from '../utils/audio';
@@ -67,6 +69,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [networkRequestActive, setNetworkRequestActive] = useState<boolean>(false);
   const [isParentConnected, setIsParentConnected] = useState<boolean>(true);
+  const [isUnlockSuccess, setIsUnlockSuccess] = useState<boolean>(false);
 
   // Kiosk mode defense: trap browser Back button to prevent escaping lock
   useEffect(() => {
@@ -81,16 +84,21 @@ export const LockScreen: React.FC<LockScreenProps> = ({
 
   // Listen for real-time unlock from paired parent phone
   useEffect(() => {
-    const unsubApprove = pairingService.on('unlock:approved', (data: any) => {
+    const unsubApprove = (data: any) => {
+      setIsUnlockSuccess(true);
       sound.playUnlockChime();
-      if (data.autoUnlock) {
-        // Auto unlock tablet directly!
-        onVerifyOtp('0000');
-      } else if (data.pin) {
-        setPin(data.pin);
-        onVerifyOtp(data.pin);
-      }
-    });
+      setTimeout(() => {
+        if (data.autoUnlock) {
+          // Auto unlock tablet directly!
+          onVerifyOtp('0000');
+        } else if (data.pin) {
+          setPin(data.pin);
+          onVerifyOtp(data.pin);
+        }
+      }, 350);
+    };
+
+    const unsubApproveListener = pairingService.on('unlock:approved', unsubApprove);
 
     const unsubState = pairingService.on('room:state', (room: any) => {
       const hasOnlineParent = room?.parentDevices?.some((p: any) => p.online) ?? false;
@@ -98,7 +106,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({
     });
 
     return () => {
-      unsubApprove();
+      unsubApproveListener();
       unsubState();
     };
   }, [onVerifyOtp]);
@@ -158,7 +166,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({
   };
 
   const handlePinSubmit = async (enteredPin: string) => {
-    if (cooldownRemaining > 0 || isVerifying) return;
+    if (cooldownRemaining > 0 || isVerifying || isUnlockSuccess) return;
 
     setIsVerifying(true);
     try {
@@ -181,6 +189,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({
           setIsError(false);
         }, 900);
       } else {
+        setIsUnlockSuccess(true);
+        sound.playUnlockChime();
         setFailedAttempts(0);
         setErrorMessage(null);
       }
@@ -204,6 +214,73 @@ export const LockScreen: React.FC<LockScreenProps> = ({
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Celebratory Unlock Overlay on OTP Verification Success */}
+      <AnimatePresence>
+        {isUnlockSuccess && (
+          <motion.div
+            id="otp-success-transition-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-lg flex flex-col items-center justify-center p-6 text-center select-none"
+          >
+            {/* Pulsing Light Waves */}
+            <motion.div
+              initial={{ scale: 0.6, opacity: 0.8 }}
+              animate={{ scale: [0.6, 2.2], opacity: [0.8, 0] }}
+              transition={{ repeat: Infinity, duration: 1.4, ease: 'easeOut' }}
+              className="absolute w-48 h-48 rounded-full bg-emerald-500/30 blur-xl pointer-events-none"
+            />
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0.9 }}
+              animate={{ scale: [0.8, 1.8], opacity: [0.9, 0] }}
+              transition={{ repeat: Infinity, duration: 1.4, delay: 0.3, ease: 'easeOut' }}
+              className="absolute w-40 h-40 rounded-full bg-cyan-400/30 blur-lg pointer-events-none"
+            />
+
+            {/* Glowing Unlocked Emblem */}
+            <motion.div
+              initial={{ scale: 0.4, rotate: -25, y: 20 }}
+              animate={{ scale: [0.4, 1.15, 1], rotate: 0, y: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+              className="relative w-24 h-24 rounded-3xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 p-[2px] shadow-2xl shadow-emerald-500/50 mb-5 flex items-center justify-center"
+            >
+              <div className="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center relative overflow-hidden">
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.35 }}
+                >
+                  <Unlock className="w-11 h-11 text-emerald-400 drop-shadow-[0_0_16px_rgba(52,211,153,0.9)]" />
+                </motion.div>
+                <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/20 to-transparent pointer-events-none" />
+              </div>
+            </motion.div>
+
+            {/* Success Heading & Duration */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.35, ease: 'easeOut' }}
+              className="space-y-2 max-w-sm"
+            >
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs uppercase tracking-wider mb-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Έγκυρος Κωδικός PIN</span>
+              </div>
+              <h3 className="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight flex items-center justify-center gap-2">
+                <span>Το Τάμπλετ Ξεκλειδώνει!</span>
+                <Sparkles className="w-6 h-6 text-amber-300 animate-bounce" />
+              </h3>
+              <p className="text-sm font-medium text-slate-300">
+                Χρόνος οθόνης: <strong className="text-emerald-300 font-bold">{settings.unlockDurationMinutes} λεπτά</strong>
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top Bar: Device Header & Network Pairing Status */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
