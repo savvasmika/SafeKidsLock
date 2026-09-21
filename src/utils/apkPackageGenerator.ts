@@ -238,6 +238,27 @@ export async function downloadAndroidProjectZip(): Promise<void> {
 export async function downloadKotlinAndroidProjectZip(): Promise<void> {
   const zip = new JSZip();
 
+  // .gitattributes to ensure GitHub tags the repository as 100% Kotlin
+  zip.file(
+    '.gitattributes',
+    `# Configure GitHub Linguist to recognize repository as 100% Kotlin
+src/** linguist-vendored
+*.tsx linguist-vendored
+*.ts linguist-vendored
+*.json linguist-vendored
+*.css linguist-vendored
+*.html linguist-vendored
+vite.config.ts linguist-vendored
+eslint.config.js linguist-vendored
+metadata.json linguist-vendored
+
+# Kotlin & Android Source Files
+app/src/main/kotlin/** linguist-detectable=true
+app/build.gradle.kts linguist-detectable=true
+build.gradle.kts linguist-detectable=true
+settings.gradle.kts linguist-detectable=true`
+  );
+
   // Root Kotlin DSL Gradle configs
   zip.file(
     'settings.gradle.kts',
@@ -275,12 +296,27 @@ android.nonTransitiveRClass=true
 kotlin.code.style=official`
   );
 
+  // Gradle Wrapper properties
+  const gradleWrapperFolder = zip.folder('gradle')?.folder('wrapper');
+  if (gradleWrapperFolder) {
+    gradleWrapperFolder.file(
+      'gradle-wrapper.properties',
+      `distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+networkTimeout=10000
+validateDistributionUrl=true
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists`
+    );
+  }
+
   // GitHub Actions Workflow
   const workflows = zip.folder('.github')?.folder('workflows');
   if (workflows) {
     workflows.file(
       'build-apk.yml',
-      `name: Build Android APK (Gradle)
+      `name: Build Android APK
 
 on:
   push:
@@ -290,15 +326,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -385,6 +422,85 @@ dependencies {
     if (main) {
       main.file('AndroidManifest.xml', generateAndroidManifestXml('KidsSafeKiosk'));
 
+      // Res Drawables & Icons
+      const drawableFolder = main.folder('res')?.folder('drawable');
+      if (drawableFolder) {
+        drawableFolder.file('ic_launcher_background.xml', `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0891b2"
+        android:pathData="M0,0h108v108h-108z" />
+</vector>`);
+        drawableFolder.file('ic_launcher_foreground.xml', `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M54,34c-4.4,0 -8,3.6 -8,8v6h-4c-2.2,0 -4,1.8 -4,4v22c0,2.2 1.8,4 4,4h24c2.2,0 4,-1.8 4,-4V52c0,-2.2 -1.8,-4 -4,-4h-4v-6c0,-4.4 -3.6,-8 -8,-8zM50,42c0,-2.2 1.8,-4 4,-4s4,1.8 4,4v6h-8v-6z" />
+</vector>`);
+      }
+
+      const mipmapFolder = main.folder('res')?.folder('mipmap-anydpi-v26');
+      if (mipmapFolder) {
+        mipmapFolder.file('ic_launcher.xml', `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>`);
+        mipmapFolder.file('ic_launcher_round.xml', `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>`);
+      }
+
+      const valuesFolder = main.folder('res')?.folder('values');
+      if (valuesFolder) {
+        valuesFolder.file('strings.xml', `<resources>
+    <string name="app_name">Kids Tablet Lock</string>
+    <string name="child_mode">Λειτουργία Παιδιού (Κλείδωμα)</string>
+    <string name="parent_mode">Λειτουργία Γονέα (Έλεγχος)</string>
+</resources>`);
+        valuesFolder.file('colors.xml', `<resources>
+    <color name="primary">#06b6d4</color>
+    <color name="background_dark">#090d16</color>
+    <color name="surface_dark">#0f172a</color>
+    <color name="text_white">#f8fafc</color>
+    <color name="text_muted">#94a3b8</color>
+    <color name="card_border">#1e293b</color>
+    <color name="rose_danger">#f43f5e</color>
+    <color name="emerald_success">#10b981</color>
+</resources>`);
+        valuesFolder.file('themes.xml', `<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.KidsTabletLock" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="android:windowBackground">@color/background_dark</item>
+        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="android:navigationBarColor">@color/background_dark</item>
+    </style>
+</resources>`);
+      }
+
+      const xmlFolder = main.folder('res')?.folder('xml');
+      if (xmlFolder) {
+        xmlFolder.file('device_admin_sample.xml', `<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <force-lock />
+        <limit-password />
+        <watch-login />
+        <reset-password />
+        <wipe-data />
+    </uses-policies>
+</device-admin>`);
+      }
+
       const kt = main.folder('kotlin')?.folder('com')?.folder('kidstablet')?.folder('lockscreen');
       if (kt) {
         kt.file(
@@ -393,9 +509,9 @@ dependencies {
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -416,11 +532,11 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 
-class ChildKioskActivity : ComponentActivity() {
+class ChildKioskActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)

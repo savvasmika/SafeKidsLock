@@ -1,0 +1,16 @@
+# Configure GitHub Linguist to recognize this repository as 100% Kotlin
+src/** linguist-vendored
+*.tsx linguist-vendored
+*.ts linguist-vendored
+*.json linguist-vendored
+*.css linguist-vendored
+*.html linguist-vendored
+vite.config.ts linguist-vendored
+eslint.config.js linguist-vendored
+metadata.json linguist-vendored
+
+# Kotlin & Android Source Files
+app/src/main/kotlin/** linguist-detectable=true
+app/build.gradle.kts linguist-detectable=true
+build.gradle.kts linguist-detectable=true
+settings.gradle.kts linguist-detectable=true
