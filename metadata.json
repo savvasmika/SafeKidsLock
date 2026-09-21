@@ -1,0 +1,6 @@
+{
+  "name": "Tablet Kids Lock",
+  "description": "Child-safe tablet lock screen with Parent and Child dual modes, automatic local network pairing, real-time PIN unlock requests, and remote parental controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
