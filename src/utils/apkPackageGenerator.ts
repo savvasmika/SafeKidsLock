@@ -359,6 +359,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.10.2'
+          cache-disabled: true
 
       - name: Make gradlew executable
         run: |
