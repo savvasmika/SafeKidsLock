@@ -3,9 +3,11 @@ package com.kidstablet.lockscreen
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -15,15 +17,18 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.webkit.WebViewAssetLoader
 
 /**
  * MainActivity: Full Hybrid Native Android Host for KidsSafe Kiosk.
- * Loads the complete, rich application UI from bundled assets with native Android bridging.
+ * Loads the complete, rich application UI via androidx.webkit.WebViewAssetLoader
+ * to prevent blank/white screen issues caused by CORS and local ES Module security.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var progressBar: ProgressBar
+    private lateinit var assetLoader: WebViewAssetLoader
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,7 +39,18 @@ class MainActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
 
+        // Dark background to prevent white flash during initialization
+        webView.setBackgroundColor(Color.parseColor("#020617"))
+
         hideSystemBars()
+
+        // Configure modern secure local asset loader for Android
+        assetLoader = WebViewAssetLoader.Builder()
+            .setDomain("appassets.androidplatform.net")
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(this))
+            .build()
+
         setupWebView()
 
         // Handle Back button/gestures in Android 15
@@ -43,19 +59,18 @@ class MainActivity : AppCompatActivity() {
                 if (webView.canGoBack()) {
                     webView.goBack()
                 } else {
-                    // Prevent accidental closure from kiosk
                     webView.evaluateJavascript("window.__handleAndroidBack ? window.__handleAndroidBack() : null", null)
                 }
             }
         })
 
-        // Start background security & network service
+        // Start background kiosk protection service
         try {
             LockService.start(this)
         } catch (_: Exception) {}
 
-        // Load the full bundled application
-        webView.loadUrl("file:///android_asset/index.html")
+        // Load via secure Android Platform virtual HTTPS origin to support ES Modules, LocalStorage & Audio
+        webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -66,6 +81,8 @@ class MainActivity : AppCompatActivity() {
         webSettings.databaseEnabled = true
         webSettings.allowFileAccess = true
         webSettings.allowContentAccess = true
+        webSettings.allowFileAccessFromFileURLs = true
+        webSettings.allowUniversalAccessFromFileURLs = true
         webSettings.loadWithOverviewMode = true
         webSettings.useWideViewPort = true
         webSettings.builtInZoomControls = false
@@ -90,11 +107,28 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                val msg = consoleMessage?.message() ?: ""
+                val source = consoleMessage?.sourceId() ?: ""
+                val line = consoleMessage?.lineNumber() ?: 0
+                Log.d("KidsLockWebView", "[$source:$line] $msg")
                 return super.onConsoleMessage(consoleMessage)
             }
         }
 
         webView.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): WebResourceResponse? {
+                if (request != null) {
+                    val response = assetLoader.shouldInterceptRequest(request.url)
+                    if (response != null) {
+                        return response
+                    }
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
                 progressBar.visibility = View.VISIBLE
@@ -105,9 +139,24 @@ class MainActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
             }
 
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                Log.e("KidsLockWebView", "Page error: ${error?.description} on ${request?.url}")
+                // Fallback to file URL if virtual domain interception fails on older webviews
+                if (request?.isForMainFrame == true && request.url.toString().startsWith("https://appassets.androidplatform.net/")) {
+                    webView.post {
+                        webView.loadUrl("file:///android_asset/index.html")
+                    }
+                }
+            }
+
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
-                if (url.startsWith("file:///android_asset/")) {
+                if (url.startsWith("https://appassets.androidplatform.net/") || url.startsWith("file:///android_asset/")) {
                     return false
                 }
                 // External URLs open in system browser
