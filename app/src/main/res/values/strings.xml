@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">KidsSafe Kiosk</string>
+    <string name="mode_select_title">KidsSafe Kiosk • Επιλογή Ρόλου</string>
+    <string name="mode_select_subtitle">Επιλέξτε πώς θα λειτουργήσει αυτή η συσκευή</string>
+    <string name="btn_child_mode">📱 Συσκευή Παιδιού (Kiosk Mode)</string>
+    <string name="btn_parent_mode">🛡️ Λειτουργία Γονέα (Parent Dashboard)</string>
+    <string name="child_mode_desc">Κλειδώνει το τάμπλετ σε Kiosk. Απαιτείται 4-ψήφιος κωδικός ή έγκριση από το κινητό του γονέα.</string>
+    <string name="parent_mode_desc">Λαμβάνει αιτήματα ξεκλειδώματος σε πραγματικό χρόνο, εμφανίζει το PIN και ξεκλειδώνει το τάμπλετ απομακρυσμένα.</string>
+
+    <string name="locked_title">Το Τάμπλετ είναι Κλειδωμένο</string>
+    <string name="req_code_btn">📡 Ζήτησε Κωδικό από τον Γονέα</string>
+    <string name="req_sent_msg">Το αίτημα στάλθηκε στο κινητό του γονέα!</string>
+    <string name="enter_pin_hint">Πληκτρολογήστε το 4-ψήφιο PIN</string>
+    <string name="device_admin_label">KidsSafe Kiosk Administrator</string>
+    <string name="device_admin_description">Ενεργοποιεί ασφαλές Kiosk Lock Task Mode για προστασία του παιδιού.</string>
+</resources>

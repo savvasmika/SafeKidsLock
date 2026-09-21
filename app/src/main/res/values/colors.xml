@@ -1,0 +1,13 @@
+<resources>
+    <color name="primary">#06b6d4</color>
+    <color name="primary_dark">#0891b2</color>
+    <color name="accent">#6366f1</color>
+    <color name="background_dark">#020617</color>
+    <color name="surface_dark">#0f172a</color>
+    <color name="card_border">#1e293b</color>
+    <color name="text_white">#f8fafc</color>
+    <color name="text_muted">#94a3b8</color>
+    <color name="emerald_success">#10b981</color>
+    <color name="rose_danger">#f43f5e</color>
+    <color name="amber_warning">#f59e0b</color>
+</resources>

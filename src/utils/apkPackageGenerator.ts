@@ -230,3 +230,219 @@ export async function downloadAndroidProjectZip(): Promise<void> {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Builds and downloads the 100% Kotlin Native Android Project ZIP
+ * Ready for GitHub Actions Gradle build or Android Studio
+ */
+export async function downloadKotlinAndroidProjectZip(): Promise<void> {
+  const zip = new JSZip();
+
+  // Root Kotlin DSL Gradle configs
+  zip.file(
+    'settings.gradle.kts',
+    `pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "KidsTabletLock"
+include(":app")`
+  );
+
+  zip.file(
+    'build.gradle.kts',
+    `plugins {
+    id("com.android.application") version "8.7.2" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+}`
+  );
+
+  zip.file(
+    'gradle.properties',
+    `org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.nonTransitiveRClass=true
+kotlin.code.style=official`
+  );
+
+  // GitHub Actions Workflow
+  const workflows = zip.folder('.github')?.folder('workflows');
+  if (workflows) {
+    workflows.file(
+      'build-apk.yml',
+      `name: Build Android APK (Gradle)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Generate debug keystore
+        run: |
+          if [ -f debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+          else
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
+          fi
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build Debug APK with Gradle
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk`
+    );
+  }
+
+  // App module
+  const appFolder = zip.folder('app');
+  if (appFolder) {
+    appFolder.file(
+      'build.gradle.kts',
+      `plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+}
+
+android {
+    namespace = "com.kidstablet.lockscreen"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "com.kidstablet.lockscreen"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        debug {
+            isDebuggable = true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.activity:activity-ktx:1.9.2")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+}`
+    );
+
+    const main = appFolder.folder('src')?.folder('main');
+    if (main) {
+      main.file('AndroidManifest.xml', generateAndroidManifestXml('KidsSafeKiosk'));
+
+      const kt = main.folder('kotlin')?.folder('com')?.folder('kidstablet')?.folder('lockscreen');
+      if (kt) {
+        kt.file(
+          'MainActivity.kt',
+          `package com.kidstablet.lockscreen
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.activity.ComponentActivity
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        findViewById<Button>(R.id.btnChildMode).setOnClickListener {
+            startActivity(Intent(this, ChildKioskActivity::class.java))
+        }
+        findViewById<Button>(R.id.btnParentMode).setOnClickListener {
+            startActivity(Intent(this, ParentDashboardActivity::class.java))
+        }
+    }
+}`
+        );
+
+        kt.file(
+          'ChildKioskActivity.kt',
+          `package com.kidstablet.lockscreen
+import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
+
+class ChildKioskActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_child_kiosk)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Toast.makeText(this@ChildKioskActivity, "Το τάμπλετ είναι κλειδωμένο!", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+}`
+        );
+
+        kt.file('KidsDeviceAdminReceiver.kt', generateDeviceAdminReceiverKt());
+      }
+    }
+  }
+
+  const content = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(content);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'kidssafe-kiosk-kotlin-project.zip';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
