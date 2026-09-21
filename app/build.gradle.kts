@@ -27,7 +27,6 @@ android {
         }
         debug {
             isDebuggable = true
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -38,10 +37,6 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-    }
-
-    buildFeatures {
-        viewBinding = true
     }
 }
 
@@ -55,3 +50,4 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
+

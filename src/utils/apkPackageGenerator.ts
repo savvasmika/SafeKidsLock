@@ -300,21 +300,23 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Generate debug keystore
-        run: |
-          if [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
-          else
-            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
-          fi
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.10.2'
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew || true
+
       - name: Build Debug APK with Gradle
-        run: gradle assembleDebug --stacktrace
+        run: |
+          ./gradlew assembleDebug --stacktrace --no-daemon || gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
