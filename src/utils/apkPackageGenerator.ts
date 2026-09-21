@@ -311,17 +311,19 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || true
-
-      - name: Build Debug APK with Gradle
+      - name: Ensure Gradle Wrapper & Permissions
         run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon || gradle assembleDebug --stacktrace --no-daemon
+          gradle wrapper || true
+          chmod +x gradlew || true
+
+      - name: Build Debug APK
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace || gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
+          name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk`
     );
   }
